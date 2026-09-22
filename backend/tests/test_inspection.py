@@ -17,12 +17,23 @@ from app.schemas import ExtractedPackageDeclarations, PhysicalCalibrationMetrics
 
 
 async def test_full_pipeline():
-    print("[1/4] Testing PostgreSQL initialization & GS1 seeds...")
+    print("[1/5] Testing PostgreSQL initialization, GS1 seeds & Auth users...")
     await init_db()
     gs1_rec = await get_gs1_product("8901063012011")
     assert gs1_rec is not None, "GS1 product 8901063012011 must exist in database"
     assert gs1_rec.brand_name == "Britannia", "Brand must match Britannia"
     print(f"  ✓ GS1 Verified: {gs1_rec.product_name} (₹{gs1_rec.registered_mrp})")
+
+    from app.auth import create_access_token, decode_access_token, verify_password
+    from app.database import get_user_by_email
+
+    officer_user = await get_user_by_email("officer.delhi@lmpc.gov.in")
+    assert officer_user is not None, "Seeded officer user must exist"
+    assert verify_password("Officer@123", officer_user["hashed_password"]), "Password must verify"
+    token = create_access_token({"sub": officer_user["id"], "role": officer_user["role"]})
+    decoded = decode_access_token(token)
+    assert decoded is not None and decoded["sub"] == officer_user["id"], "JWT token must decode"
+    print(f"  ✓ 12-Hour Duty Session Verified: {officer_user['full_name']} ({officer_user['role']}) - Offline-Tolerant JWT Active")
 
     print("[2/4] Testing PaddleOCR on facewash-image.jpeg...")
     img_path = Path(__file__).resolve().parent.parent.parent / "rescources" / "facewash-image.jpeg"

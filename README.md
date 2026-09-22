@@ -73,5 +73,20 @@ make start
 
 ## 5. Documentation Links
 
+* [**Windows Setup Guide**](WINDOWS_GUIDE.md) : Detailed instructions for running on Windows via Docker, WSL2, or native PowerShell.
 * [**Architecture & System Design**](ARCHITECTURE.md) : Detailed pipeline layout and module responsibilities.
 * [**Testing Guide**](TESTING.md) : Step-by-step verification commands, curl examples, and test images.
+
+---
+
+## 6. Running on Windows 🪟
+
+Teammates on Windows can run the project effortlessly:
+
+- **1-Click Launch (Batch)**: Double-click `run-windows.bat` in File Explorer.
+- **PowerShell**: Run `.\run-windows.ps1` in PowerShell.
+- **Docker Compose**: Run `docker compose up --build` in Command Prompt.
+- **WSL2 (Ubuntu)**: Run `make start` or `./start.sh` inside WSL.
+
+👉 See [**WINDOWS_GUIDE.md**](WINDOWS_GUIDE.md) for full step-by-step instructions, troubleshooting, and screenshots.
+

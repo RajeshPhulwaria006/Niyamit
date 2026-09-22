@@ -18,12 +18,23 @@ from .schemas import GS1ProductRecord, InspectionDossier
 _pool: asyncpg.Pool | None = None
 
 
+def normalize_dsn(dsn: str) -> str:
+    """Normalizes SQLAlchemy or custom dialect URLs to pure PostgreSQL DSN for asyncpg."""
+    clean = dsn.strip()
+    if clean.startswith("postgresql+asyncpg://"):
+        return clean.replace("postgresql+asyncpg://", "postgresql://", 1)
+    if clean.startswith("postgresql+psycopg2://"):
+        return clean.replace("postgresql+psycopg2://", "postgresql://", 1)
+    return clean
+
+
 async def get_db_pool() -> asyncpg.Pool:
     """Returns or initializes the asyncpg connection pool."""
     global _pool
     if _pool is None:
+        clean_dsn = normalize_dsn(settings.DATABASE_URL)
         _pool = await asyncpg.create_pool(
-            dsn=settings.DATABASE_URL,
+            dsn=clean_dsn,
             min_size=2,
             max_size=10,
             command_timeout=60,
@@ -103,7 +114,77 @@ async def init_db():
             );
         """)
 
-        # 3. Seed real-world Indian GS1 DataKart master records
+        # 3. Users and RBAC Table
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id VARCHAR(50) PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                hashed_password VARCHAR(255) NOT NULL,
+                full_name VARCHAR(150) NOT NULL,
+                role VARCHAR(20) NOT NULL DEFAULT 'CONSUMER',
+                organization VARCHAR(150),
+                badge_number VARCHAR(50),
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
+        """)
+
+        # 4. Long-Lived Refresh Tokens Table (with Revocation & Device Tracking)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS refresh_tokens (
+                id VARCHAR(50) PRIMARY KEY,
+                user_id VARCHAR(50) REFERENCES users(id) ON DELETE CASCADE,
+                token_hash VARCHAR(255) UNIQUE NOT NULL,
+                device_info VARCHAR(255),
+                expires_at TIMESTAMPTZ NOT NULL,
+                revoked_at TIMESTAMPTZ,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
+        """)
+
+        # Seed default demonstration users (Consumer, Officer, Admin)
+        default_users = [
+            (
+                "usr-consumer-01",
+                "consumer@smartconsumer.gov.in",
+                "$2b$12$Kj6K132j7v.Q3yqA1w8s9.9m8uX6f1w7s8e9q0r1t2y3u4i5o6p7a",  # Consumer@123
+                "Rahul Sharma (Citizen Consumer)",
+                "CONSUMER",
+                "Smart Consumer Forum",
+                None,
+            ),
+            (
+                "usr-officer-01",
+                "officer.delhi@lmpc.gov.in",
+                "$2b$12$Kj6K132j7v.Q3yqA1w8s9.9m8uX6f1w7s8e9q0r1t2y3u4i5o6p7a",  # Officer@123
+                "Inspector S. K. Verma",
+                "OFFICER",
+                "Legal Metrology Department, Delhi NCT",
+                "DL-LMPC-402",
+            ),
+            (
+                "usr-admin-01",
+                "admin@doca.gov.in",
+                "$2b$12$Kj6K132j7v.Q3yqA1w8s9.9m8uX6f1w7s8e9q0r1t2y3u4i5o6p7a",  # Admin@123
+                "Director (Legal Metrology), DoCA",
+                "ADMIN",
+                "Ministry of Consumer Affairs, New Delhi",
+                "GOI-DOCA-HQ",
+            ),
+        ]
+        # We compute real bcrypt hashes on seed so password authentication always succeeds
+        import bcrypt
+        for uid, email, _, name, role, org, badge in default_users:
+            exists = await conn.fetchrow("SELECT id FROM users WHERE email = $1", email)
+            if not exists:
+                plain = "Consumer@123" if role == "CONSUMER" else ("Officer@123" if role == "OFFICER" else "Admin@123")
+                salt = bcrypt.gensalt(rounds=10)
+                pw_hash = bcrypt.hashpw(plain.encode("utf-8"), salt).decode("utf-8")
+                await conn.execute("""
+                    INSERT INTO users (id, email, hashed_password, full_name, role, organization, badge_number)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7)
+                """, uid, email, pw_hash, name, role, org, badge)
+
+        # 4. Seed real-world Indian GS1 DataKart master records
         seed_records = [
             (
                 "8901063012011",
@@ -352,4 +433,134 @@ async def get_recent_audits(limit: int = 15) -> list[dict[str, Any]]:
         return [dict(r) for r in rows]
 
 
+async def get_user_by_email(email: str) -> dict[str, Any] | None:
+    """Retrieves a user by their registered email address."""
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM users WHERE email = $1;", email.lower().strip())
+        return dict(row) if row else None
+
+
+async def get_user_by_id(user_id: str) -> dict[str, Any] | None:
+    """Retrieves a user by their unique primary key identifier."""
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM users WHERE id = $1;", user_id)
+        return dict(row) if row else None
+
+
+async def create_user(
+    user_id: str,
+    email: str,
+    hashed_password: str,
+    full_name: str,
+    role: str = "CONSUMER",
+    organization: str | None = None,
+    badge_number: str | None = None,
+) -> dict[str, Any]:
+    """Creates and persists a new user account in PostgreSQL."""
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            INSERT INTO users (id, email, hashed_password, full_name, role, organization, badge_number)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING id, email, full_name, role, organization, badge_number, created_at;
+            """,
+            user_id,
+            email.lower().strip(),
+            hashed_password,
+            full_name.strip(),
+            role,
+            organization.strip() if organization else None,
+            badge_number.strip() if badge_number else None,
+        )
+        return dict(row)
+
+
+async def list_demo_users() -> list[dict[str, Any]]:
+    """Returns pre-configured demo users for quick role switching and testing."""
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT id, email, full_name, role, organization, badge_number FROM users ORDER BY created_at ASC;"
+        )
+        return [dict(r) for r in rows]
+
+
+async def store_refresh_token(
+    token_id: str,
+    user_id: str,
+    token_hash: str,
+    expires_at: Any,
+    device_info: str | None = None,
+) -> dict[str, Any]:
+    """Stores a newly issued refresh token in PostgreSQL for stateful revocation management."""
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            INSERT INTO refresh_tokens (id, user_id, token_hash, device_info, expires_at)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING id, user_id, token_hash, expires_at, created_at;
+            """,
+            token_id,
+            user_id,
+            token_hash,
+            device_info,
+            expires_at,
+        )
+        return dict(row)
+
+
+async def get_valid_refresh_token(token_hash: str) -> dict[str, Any] | None:
+    """
+    Finds a refresh token by its hash, verifying it has NOT been revoked and has NOT expired.
+    """
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            SELECT rt.*, u.email, u.full_name, u.role, u.organization, u.badge_number
+            FROM refresh_tokens rt
+            JOIN users u ON u.id = rt.user_id
+            WHERE rt.token_hash = $1
+              AND rt.revoked_at IS NULL
+              AND rt.expires_at > NOW();
+            """,
+            token_hash,
+        )
+        return dict(row) if row else None
+
+
+async def revoke_refresh_token(token_hash: str) -> bool:
+    """Revokes a specific refresh token (e.g. on logout or token rotation)."""
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            "UPDATE refresh_tokens SET revoked_at = NOW() WHERE token_hash = $1 AND revoked_at IS NULL;",
+            token_hash,
+        )
+        return "UPDATE 1" in result
+
+
+async def revoke_all_user_tokens(user_id: str) -> int:
+    """
+    Emergency kill-switch: revokes all active refresh tokens for an officer or user.
+    Used when an enforcement device is stolen, lost in a market, or inspector transferred.
+    """
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            "UPDATE refresh_tokens SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL;",
+            user_id,
+        )
+        try:
+            return int(result.split()[-1])
+        except Exception:
+            return 0
+
+
 init_db_schema = init_db
+
+

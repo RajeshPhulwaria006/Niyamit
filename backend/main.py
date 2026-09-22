@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes_auth import router as auth_router
 from app.api.routes_gs1 import router as gs1_router
 from app.api.routes_inspect import router as inspect_router
 from app.api.routes_ocr import router as ocr_router
@@ -55,6 +56,7 @@ app.add_middleware(
 )
 
 # Mount API Routers
+app.include_router(auth_router)
 app.include_router(ocr_router)
 app.include_router(inspect_router)
 app.include_router(gs1_router)

@@ -23,6 +23,9 @@ import {
 import { CameraUploadModal } from '@/components/CameraUploadModal';
 import { PanchnamaModal } from '@/components/PanchnamaModal';
 import { PhoneAccessModal } from '@/components/PhoneAccessModal';
+import { Navbar } from '@/components/Navbar';
+import { StatutoryCard } from '@/components/StatutoryCard';
+import { useAuth } from '@/context/AuthContext';
 import { SAMPLE_PACKAGES, SamplePackageTestCase } from '@/lib/engine/sampleData';
 import { InspectionDossier } from '@/types/lmpc';
 
@@ -35,6 +38,7 @@ interface DbStats {
 }
 
 export default function SimpleOfficerPage() {
+  const { role, user } = useAuth();
   const [dossier, setDossier] = useState<InspectionDossier | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isCameraModalOpen, setIsCameraModalOpen] = useState<boolean>(false);
@@ -42,6 +46,7 @@ export default function SimpleOfficerPage() {
   const [isPhoneModalOpen, setIsPhoneModalOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'CONSOLE' | 'HISTORY' | 'RULES'>('CONSOLE');
   const [activeDossierTab, setActiveDossierTab] = useState<'VIOLATIONS' | 'DECLARATIONS' | 'CALIBRATION'>('VIOLATIONS');
+  const [evaluationFilter, setEvaluationFilter] = useState<'ALL' | 'ISSUES' | 'VERIFIED'>('ALL');
   const [manualBarcode, setManualBarcode] = useState<string>('');
   const [auditError, setAuditError] = useState<string | null>(null);
 
@@ -134,45 +139,10 @@ export default function SimpleOfficerPage() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-900 antialiased">
-      {/* Top Simple Bar */}
-      <header className="bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-30 shadow-xs">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-lg bg-slate-900 text-amber-400 flex items-center justify-center font-bold shadow-xs">
-              <Shield className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h1 className="font-bold text-sm sm:text-base leading-tight tracking-tight">
-                  e-LMPC RADAR
-                </h1>
-                <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-mono">
-                  v2.0
-                </span>
-              </div>
-              <span className="text-[11px] text-slate-500 block">
-                DoCA Legal Metrology Enforcement Cell
-              </span>
-            </div>
-          </div>
+      {/* Official Top Bar with Persona / Role Switcher */}
+      <Navbar />
 
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setIsPhoneModalOpen(true)}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-colors"
-              title="Connect mobile phone over local Wi-Fi"
-            >
-              <Smartphone className="w-3.5 h-3.5 text-blue-600" />
-              <span className="hidden sm:inline">Use on Phone</span>
-            </button>
-            <div className="hidden sm:flex items-center gap-1 text-xs text-slate-500 font-mono bg-slate-50 px-2.5 py-1 rounded-md border border-slate-200">
-              <Database className="w-3 h-3 text-emerald-600" /> PostgreSQL Active
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Navigation Tabs */}
+      {/* Role-Aware Navigation Tabs */}
       <div className="bg-white border-b border-slate-200">
         <div className="max-w-4xl mx-auto px-4 flex space-x-1 sm:space-x-4 text-xs font-bold">
           <button
@@ -184,7 +154,7 @@ export default function SimpleOfficerPage() {
             }`}
           >
             <Search className="w-3.5 h-3.5" />
-            <span>Inspection Console</span>
+            <span>{role === 'CONSUMER' ? 'Product Pricing & Legality Checker' : 'Statutory Inspection Console'}</span>
           </button>
           <button
             onClick={() => {
@@ -198,7 +168,7 @@ export default function SimpleOfficerPage() {
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
-            <span>Audit Repository ({dbStats.totalInspected})</span>
+            <span>{role === 'CONSUMER' ? 'Past Scanned Products' : `Audit Repository (${dbStats.totalInspected})`}</span>
           </button>
           <button
             onClick={() => setActiveTab('RULES')}
@@ -209,7 +179,7 @@ export default function SimpleOfficerPage() {
             }`}
           >
             <BookOpen className="w-3.5 h-3.5" />
-            <span>LMPC Rules Guide</span>
+            <span>{role === 'CONSUMER' ? 'Your Packaging Rights' : 'LMPC Rules Guide'}</span>
           </button>
         </div>
       </div>
@@ -431,14 +401,76 @@ export default function SimpleOfficerPage() {
                       className="flex-1 sm:flex-initial bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs px-3 py-2 rounded-xl border border-slate-300 flex items-center justify-center gap-1.5 transition-colors"
                       title="Clear current audit and scan a new product"
                     >
-                      <RotateCcw className="w-3.5 h-3.5" /> New Audit
+                      <RotateCcw className="w-3.5 h-3.5" /> New Scan
                     </button>
-                    <button
-                      onClick={() => setIsPanchnamaOpen(true)}
-                      className="flex-1 sm:flex-initial bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-colors"
-                    >
-                      <FileText className="w-3.5 h-3.5 text-amber-400" /> Form VIII Notice
-                    </button>
+                    {role === 'CONSUMER' ? (
+                      <a
+                        href="https://consumerhelpline.gov.in"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" /> Consumer Helpline (1915)
+                      </a>
+                    ) : (
+                      <button
+                        onClick={() => setIsPanchnamaOpen(true)}
+                        className="flex-1 sm:flex-initial bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-amber-400" /> Form VIII Notice
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* 4 Core Consumer Packaging Metric Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                      Price Per Unit (USP)
+                    </span>
+                    <span className="text-base font-extrabold text-slate-900 mt-0.5 block">
+                      {dossier.declarations.declaredUsp || (dossier.declarations as any).declaredUSP
+                        ? `₹ ${(dossier.declarations.declaredUsp || (dossier.declarations as any).declaredUSP).toFixed(2)} / ${dossier.declarations.declaredUspUnit || (dossier.declarations as any).declaredUSPUnit || 'unit'}`
+                        : '⚠️ Not Declared'}
+                    </span>
+                    <span className="text-[10px] text-slate-500">Rate per 1g or 1ml</span>
+                  </div>
+
+                  <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                      Printed MRP
+                    </span>
+                    <span className="text-base font-extrabold text-slate-900 mt-0.5 block">
+                      {dossier.declarations.mrp ? `₹ ${dossier.declarations.mrp.toFixed(2)}` : '⚠️ Missing'}
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      {dossier.declarations.hasInclusiveOfTaxes ? '✓ All Taxes Included' : '⚠️ Tax clause omitted'}
+                    </span>
+                  </div>
+
+                  <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                      Net Quantity
+                    </span>
+                    <span className="text-base font-extrabold text-slate-900 mt-0.5 block">
+                      {dossier.declarations.netQuantityValue
+                        ? `${dossier.declarations.netQuantityValue} ${dossier.declarations.netQuantityUnit || ''}`
+                        : '⚠️ Missing'}
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      {dossier.declarations.isStandardUnitSymbol ? '✓ Legal SI Symbol' : '⚠️ Illegal Unit Symbol'}
+                    </span>
+                  </div>
+
+                  <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                      Date of Packing
+                    </span>
+                    <span className="text-sm font-bold text-slate-900 mt-1 block truncate">
+                      {dossier.declarations.manufacturingDate || '⚠️ Not Detected'}
+                    </span>
+                    <span className="text-[10px] text-slate-500">Rule 6(1)(d) Mandate</span>
                   </div>
                 </div>
 
@@ -468,7 +500,7 @@ export default function SimpleOfficerPage() {
                           : 'border-transparent text-slate-500 hover:text-slate-800'
                       }`}
                     >
-                      Rule Checkpoints ({dossier.evaluations?.length || 0})
+                      {role === 'CONSUMER' ? 'Packaging Checkpoints' : 'Rule Checkpoints'} ({dossier.evaluations?.length || 0})
                     </button>
                     <button
                       onClick={() => setActiveDossierTab('DECLARATIONS')}
@@ -480,72 +512,78 @@ export default function SimpleOfficerPage() {
                     >
                       Packaging Declarations
                     </button>
-                    <button
-                      onClick={() => setActiveDossierTab('CALIBRATION')}
-                      className={`pb-2.5 px-3 border-b-2 transition-colors flex items-center gap-1.5 ${
-                        activeDossierTab === 'CALIBRATION'
-                          ? 'border-blue-600 text-blue-700'
-                          : 'border-transparent text-slate-500 hover:text-slate-800'
-                      }`}
-                    >
-                      Rule 7 Font Metrics
-                    </button>
+                    {role !== 'CONSUMER' && (
+                      <button
+                        onClick={() => setActiveDossierTab('CALIBRATION')}
+                        className={`pb-2.5 px-3 border-b-2 transition-colors flex items-center gap-1.5 ${
+                          activeDossierTab === 'CALIBRATION'
+                            ? 'border-blue-600 text-blue-700'
+                            : 'border-transparent text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        Rule 7 Font Metrics
+                      </button>
+                    )}
                   </div>
 
                   {/* Sub-tab 1: Violations & Checklist */}
                   {activeDossierTab === 'VIOLATIONS' && (
-                    <div className="p-4 sm:p-5 space-y-2.5">
-                      {dossier.evaluations?.map((v) => {
-                        const isPass = v.status === 'PASS';
-                        return (
-                          <div
-                            key={v.id}
-                            className={`p-3 rounded-xl border text-xs space-y-1 transition-all ${
-                              isPass
-                                ? 'bg-slate-50/50 border-slate-200'
-                                : 'bg-rose-50/50 border-rose-200'
+                    <div className="p-4 sm:p-5 space-y-3">
+                      {/* Filter Bar */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-1 border-b border-slate-100">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-bold text-slate-500">Filter View:</span>
+                          <button
+                            onClick={() => setEvaluationFilter('ALL')}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                              evaluationFilter === 'ALL'
+                                ? 'bg-slate-900 text-white shadow-2xs'
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                             }`}
                           >
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-2">
-                                {isPass ? (
-                                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                                ) : (
-                                  <XCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                                )}
-                                <span className="font-bold text-slate-900">
-                                  {v.title}
-                                </span>
-                              </div>
-                              <span
-                                className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded shrink-0 ${
-                                  isPass
-                                    ? 'bg-emerald-100 text-emerald-800'
-                                    : 'bg-rose-100 text-rose-800'
-                                }`}
-                              >
-                                {v.status}
-                              </span>
-                            </div>
+                            All ({dossier.evaluations?.length || 0})
+                          </button>
+                          <button
+                            onClick={() => setEvaluationFilter('ISSUES')}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                              evaluationFilter === 'ISSUES'
+                                ? 'bg-rose-600 text-white shadow-2xs'
+                                : 'bg-rose-50 text-rose-800 hover:bg-rose-100'
+                            }`}
+                          >
+                            Issues & Warnings ({dossier.evaluations?.filter((e) => e.status !== 'PASS').length || 0})
+                          </button>
+                          <button
+                            onClick={() => setEvaluationFilter('VERIFIED')}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                              evaluationFilter === 'VERIFIED'
+                                ? 'bg-emerald-600 text-white shadow-2xs'
+                                : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                            }`}
+                          >
+                            Verified Legal ({dossier.evaluations?.filter((e) => e.status === 'PASS').length || 0})
+                          </button>
+                        </div>
 
-                            <p className="text-slate-600 pl-6 text-[11px] leading-relaxed">
-                              {v.explanation}
-                            </p>
+                        {violations.length > 0 && (
+                          <span className="text-[11px] text-rose-700 font-semibold flex items-center gap-1">
+                            ⚠️ {violations.length} mandatory rule(s) failed
+                          </span>
+                        )}
+                      </div>
 
-                            <div className="pl-6 pt-1 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-slate-500 font-mono">
-                              <span>Ref: <strong>{v.statutoryReference}</strong></span>
-                              {v.observedValue && <span>Observed: <strong>{v.observedValue}</strong></span>}
-                              {v.mandatedRequirement && <span>Mandate: {v.mandatedRequirement}</span>}
-                            </div>
-
-                            {v.penaltyClause && (
-                              <div className="pl-6 text-[10px] font-semibold text-rose-800">
-                                Penalty: {v.penaltyClause}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                      {/* Cards List with plain English details */}
+                      <div className="space-y-3">
+                        {dossier.evaluations
+                          ?.filter((v) => {
+                            if (evaluationFilter === 'ISSUES') return v.status !== 'PASS';
+                            if (evaluationFilter === 'VERIFIED') return v.status === 'PASS';
+                            return true;
+                          })
+                          .map((v) => (
+                            <StatutoryCard key={v.id} evaluation={v} role={role} />
+                          ))}
+                      </div>
                     </div>
                   )}
 

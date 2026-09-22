@@ -218,3 +218,39 @@ class AuditRequestPayload(CamelModel):
     @classmethod
     def convert_camel_case(cls, data: Any) -> Any:
         return _camel_to_snake(data)
+
+
+UserRole = Literal["CONSUMER", "OFFICER", "ADMIN"]
+
+
+class UserRegisterRequest(CamelModel):
+    email: str = Field(..., description="User email address")
+    password: str = Field(..., min_length=6, description="Password (minimum 6 characters)")
+    full_name: str = Field(..., description="Full name of consumer or officer")
+    role: UserRole = Field(default="CONSUMER", description="User statutory role")
+    organization: str | None = Field(default=None, description="Department, NGO, or business")
+    badge_number: str | None = Field(default=None, description="Official LMPC Inspector badge ID")
+
+
+class UserLoginRequest(CamelModel):
+    email: str = Field(..., description="User email address")
+    password: str = Field(..., description="Password")
+
+
+class UserResponse(CamelModel):
+    id: str
+    email: str
+    full_name: str
+    role: UserRole
+    organization: str | None = None
+    badge_number: str | None = None
+    created_at: str | None = None
+
+
+class TokenResponse(CamelModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int = 43200  # 12-hour inspection shift in seconds
+    user: UserResponse
+
+

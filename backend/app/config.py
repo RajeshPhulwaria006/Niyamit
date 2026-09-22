@@ -32,5 +32,19 @@ class Settings(BaseModel):
     EAN13_NOMINAL_WIDTH_MM: float = 37.29  # Nominal width of standard GS1 barcode in millimeters
     EAN13_NOMINAL_HEIGHT_MM: float = 25.93  # Nominal height of standard GS1 barcode in millimeters
 
+    # JWT Authentication & Authorization (Field Duty Shift: 12 Hours)
+    JWT_SECRET_KEY: str = os.getenv(
+        "JWT_SECRET_KEY",
+        os.getenv("SECRET_KEY", "lmpc_statutory_secret_key_2026_dca_super_secure_production"),
+    )
+    JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
+        os.getenv(
+            "JWT_DUTY_SHIFT_MINUTES",
+            os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", os.getenv("JWT_EXPIRE_MINUTES", "720")),
+        )
+    )  # 12-hour shift
+
 
 settings = Settings()
+

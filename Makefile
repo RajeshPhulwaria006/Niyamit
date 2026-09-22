@@ -7,13 +7,16 @@ help:
 	@echo " e-LMPC RADAR : Legal Metrology Packaging Audit Orchestrator (v2.0)    "
 	@echo "========================================================================"
 	@echo "Available commands:"
-	@echo "  make start      - Start everything (PostgreSQL, FastAPI Backend, Next.js UI)"
+	@echo "  make start      - Start everything locally (PostgreSQL, FastAPI Backend, Next.js UI)"
 	@echo "  make backend    - Start only the Python FastAPI backend on :8000"
 	@echo "  make frontend   - Start only the Next.js frontend on :3000"
 	@echo "  make db         - Ensure PostgreSQL docker container is running"
+	@echo "  make docker-up  - Start microservices stack via Docker Compose (Postgres + Backend + Frontend)"
+	@echo "  make docker-down- Stop Docker Compose services"
+	@echo "  make docker-root- Build & run all-in-one unified root container"
 	@echo "  make lint       - Run Ruff linter on Python codebase"
 	@echo "  make format     - Run Ruff auto-formatter on Python codebase"
-	@echo "  make test       - Run end-to-end PaddleOCR statutory inspection test"
+	@echo "  make test-all   - Run both Python & TypeScript statutory test suites"
 	@echo "  make clean      - Terminate any running dev processes on :3000 and :8000"
 	@echo "========================================================================"
 
@@ -61,6 +64,26 @@ test-ts:
 	@npx tsx scripts/test-engine.ts
 
 test-all: test test-ts
+
+docker-build:
+	@echo "Building Docker Compose images..."
+	@docker compose build
+
+docker-up:
+	@echo "Starting e-LMPC RADAR microservices stack via Docker Compose..."
+	@docker compose up -d
+	@echo "✓ Stack active: Web UI http://localhost:3000 | FastAPI API http://localhost:8000/docs"
+
+docker-down:
+	@echo "Stopping Docker Compose services..."
+	@docker compose down
+
+docker-root:
+	@echo "Building unified all-in-one root container..."
+	@docker build -t lmpc-radar-allinone .
+	@echo "Starting unified all-in-one root container on :3000 and :8000..."
+	@docker run -d --name lmpc-allinone -p 3000:3000 -p 8000:8000 lmpc-radar-allinone
+	@echo "✓ Unified container running on http://localhost:3000 and http://localhost:8000"
 
 clean:
 	@echo "Stopping processes on port 3000 and 8000..."

@@ -69,8 +69,10 @@ export interface ExtractedPackageDeclarations {
     isStandardUnitSymbol: boolean;
     /** Unit Sale Price declared on the package (Rule 6(11)) */
     declaredUSP?: number;
+    declaredUsp?: number;
     /** Declared USP unit (e.g. 'per g', 'per kg', 'per ml') */
     declaredUSPUnit?: string;
+    declaredUspUnit?: string;
     /** Calculated theoretical USP based on MRP / Net Quantity */
     calculatedUSP?: number;
     /** Discrepancy percentage between declared and calculated USP */

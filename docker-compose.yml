@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. PostgreSQL 16 Database with GS1 Master Seeds & Inspection Dossiers
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: lmpc-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-lmpc_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-lmpc_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lmpc_network
+
+  # ----------------------------------------------------------------------------
+  # 2. FastAPI Statutory Compliance Engine (PaddleOCR + OpenCV + Rule Engine)
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: lmpc-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-lmpc_db}
+      HOST: 0.0.0.0
+      PORT: 8000
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-lmpc_statutory_secret_key_2026_dca_super_secure_production}
+      JWT_EXPIRE_MINUTES: 1440
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+    networks:
+      - lmpc_network
+
+  # ----------------------------------------------------------------------------
+  # 3. Next.js 14 Frontend User & Officer Portal
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: lmpc-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      BACKEND_INTERNAL_URL: http://backend:8000
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    networks:
+      - lmpc_network
+
+volumes:
+  postgres_data:
+    name: lmpc_postgres_data
+
+networks:
+  lmpc_network:
+    name: lmpc_network
+    driver: bridge

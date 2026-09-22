@@ -275,11 +275,23 @@ export const CameraUploadModal: React.FC<CameraUploadModalProps> = ({
       }
 
       setProcessingStage('READY');
-      setStatusMessage('✓ Optical processing complete. Review declarations below:');
+      if (extractedOcrText.length < 25) {
+        setErrorMessage(
+          'Glare or blur notice: Very little text could be read. If your packet has shiny foil or plastic, tilt your camera 10–15° away from direct lights to avoid reflections, or snap a second photo.'
+        );
+      } else if (!barcode && !detectedBc) {
+        setStatusMessage(
+          '✓ Text extracted successfully! Note: Barcode was not seen in this angle. Enter 13 digits below or tap "+ Snap Another Angle".'
+        );
+      } else {
+        setStatusMessage('✓ Optical processing complete. Review the extracted fields below:');
+      }
     } catch (err) {
       console.error('Packaging ingestion failed:', err);
       setProcessingStage('READY');
-      setErrorMessage('Image processing encountered an issue. You can enter or confirm values manually.');
+      setErrorMessage(
+        'We could not process this photo clearly. You can either take another photo with better lighting or confirm fields manually below.'
+      );
     }
   };
 

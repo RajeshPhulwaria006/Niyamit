@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { Providers } from '@/components/Providers';
 
 export const metadata: Metadata = {
   title: 'e-LMPC RADAR | Legal Metrology Automated Compliance System',
@@ -14,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased text-slate-900 bg-slate-50">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
