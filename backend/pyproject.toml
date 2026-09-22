@@ -1,0 +1,29 @@
+[project]
+name = "lmpc-backend"
+version = "2.0.0"
+description = "Legal Metrology Packaged Commodities Compliance Engine"
+requires-python = ">=3.10"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+cache-dir = "~/.cache/ruff"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade (modern typing: X | None, list[X], etc.)
+    "B",   # flake8-bugbear
+    "RUF", # Ruff-specific rules
+]
+ignore = [
+    "E501",   # Line too long (managed by ruff formatter)
+    "B008",   # Do not perform function call in argument defaults (FastAPI Form/File/Depends pattern)
+    "UP007",  # Use X | Y for type annotations (handled)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]

@@ -1,0 +1,107 @@
+# ==============================================================================
+# Dependencies & Package Managers
+# ==============================================================================
+node_modules/
+frontend/node_modules/
+.pnp
+.pnp.js
+
+# ==============================================================================
+# Frontend & Next.js Build Outputs
+# ==============================================================================
+.next/
+frontend/.next/
+out/
+frontend/out/
+build/
+frontend/build/
+dist/
+frontend/dist/
+.swc/
+frontend/.swc/
+*.tsbuildinfo
+
+# ==============================================================================
+# Python Caches & Bytecode
+# ==============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+backend/build/
+backend/dist/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+backend/venv/
+backend/.venv/
+
+# Testing & Linters
+.pytest_cache/
+.ruff_cache/
+backend/.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.nox/
+.tox/
+
+# ==============================================================================
+# Environment Variables & Secrets
+# ==============================================================================
+.env
+.env*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
+
+# ==============================================================================
+# Logs & Process Outputs
+# ==============================================================================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+backend.log
+frontend.log
+
+# ==============================================================================
+# Analysis & Knowledge Graph Artifacts
+# ==============================================================================
+graphify-out/
+
+# ==============================================================================
+# OS & IDE Files
+# ==============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.idea/
+*.swp
+*.swo
+*~
+
+# ==============================================================================
+# Scratch Debug & Intermediate Crops
+# ==============================================================================
+rescources/crop_*
+rescources/tight_*
+rescources/wide_*
+rescources/auto_tube.jpg
+rescources/center_crop.jpg
+rescources/*-dewarped.jpg
