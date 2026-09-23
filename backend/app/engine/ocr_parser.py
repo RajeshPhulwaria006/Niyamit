@@ -6,7 +6,7 @@ Special handling for embossed crimp seals, inverted Unit Sale Price, dual-pricin
 """
 
 import re
-from typing import Any
+from typing import Any, List
 
 from app.schemas import ExtractedPackageDeclarations
 
@@ -276,6 +276,7 @@ def extract_declarations_from_text(
 
     return ExtractedPackageDeclarations(
         mrp=mrp,
+        mrp_conflict=False,
         mrp_raw_text=mrp_raw_text,
         has_inclusive_of_taxes=has_inclusive_of_taxes,
         net_quantity_value=net_quantity_value,
@@ -344,13 +345,13 @@ def extract_bounding_boxes_and_font_height(
 
 def merge_declarations(
     declarations_list: list[ExtractedPackageDeclarations],
-) -> ExtractedPackageDeclarations:
+) -> ExtractedPackageDeclarations | List[Any]:
     """
     Intelligently merges packaging declarations extracted across multiple photo angles
     (e.g. Front PDP, Back Statutory Panel, Embossed Crimp/Seal) into a single master declaration.
     """
     if not declarations_list:
-        return ExtractedPackageDeclarations()
+        return []
 
     merged = declarations_list[0].model_copy()
     for d in declarations_list[1:]:
