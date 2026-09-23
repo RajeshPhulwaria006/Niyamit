@@ -7,13 +7,15 @@ runs CPU PaddleOCR inference, and returns extracted text, bounding metrics, and 
 
 import base64
 import io
+import json
 import time
+from collections.abc import Iterable
 from typing import Any
 
 import numpy as np
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
-from PIL import Image
 from paddleocr import PaddleOCR
+from PIL import Image
 
 from app.engine.calibration import calibrate_optical_metrics
 from app.engine.ocr_parser import (
@@ -50,15 +52,22 @@ def _extract_paddle_result(result: Any) -> list[list[Any]]:
             ...
         ]
 
-    PaddleOCR 3.x exposes rec_texts, rec_scores and rec_polys/dt_polys on each
-    prediction result. The helper also tolerates dict-like result objects.
+    PaddleOCR 3.x prediction results expose rec_texts, rec_scores and
+    rec_polys/dt_polys on each result object. This adapter isolates the rest of
+    Niyamit from PaddleOCR's result-object API.
     """
     normalized: list[list[Any]] = []
 
-    # predict() returns an iterable of page/image result objects.
-    results = result if isinstance(result, list) else [result]
+    if isinstance(result, (list, tuple)):
+        pages = list(result)
+    elif hasattr(result, "json") or isinstance(result, dict):
+        pages = [result]
+    elif isinstance(result, Iterable) and not isinstance(result, (str, bytes)):
+        pages = list(result)
+    else:
+        pages = [result]
 
-    for page_result in results:
+    for page_result in pages:
         if page_result is None:
             continue
 
@@ -73,7 +82,6 @@ def _extract_paddle_result(result: Any) -> list[list[Any]]:
             payload = {}
 
         if isinstance(payload, str):
-            import json
             payload = json.loads(payload)
 
         if not isinstance(payload, dict):
