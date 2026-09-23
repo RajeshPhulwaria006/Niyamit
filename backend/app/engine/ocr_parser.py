@@ -357,11 +357,18 @@ def merge_declarations(
     for d in declarations_list[1:]:
         if not merged.barcode and d.barcode:
             merged.barcode = d.barcode
+
         if merged.mrp is None and d.mrp is not None:
+            
+            if merged.mrp != d.mrp:
+                merged.mrp_conflict = True
+
             merged.mrp = d.mrp
             merged.mrp_raw_text = d.mrp_raw_text
+
         if not merged.has_inclusive_of_taxes and d.has_inclusive_of_taxes:
             merged.has_inclusive_of_taxes = True
+            
         if merged.net_quantity_value is None and d.net_quantity_value is not None:
             merged.net_quantity_value = d.net_quantity_value
             merged.net_quantity_unit = d.net_quantity_unit
