@@ -28,7 +28,7 @@ Unlike naive approaches that pass noisy camera photos directly to expensive clou
 | **Rule 6(1)(e)** | Maximum Retail Price (MRP) & Tax Inclusion | Entity extraction verifying price in INR and statutory clause *"inclusive of all taxes"*. |
 | **Rule 6(11)** | Unit Sale Price (USP) Mandate | Mathematical consistency: checks if declared USP matches $\frac{\text{MRP}}{\text{Net Qty}}$ within round-off tolerance. |
 | **Rule 6(1)(c) & Rule 12** | Net Quantity & Standard SI Units | Verifies legal SI symbols (`g`, `kg`, `ml`, `l`, `N`, `U`). Flags illegal colloquial variants (`gms`, `kilos`, `ltr`). |
-| **Rule 7, Table-I** | Minimum Numeral Height in Millimeters | Measures numeral height in mm via Optical Barcode Fiducial ($S = 37.29\text{ mm} / \text{barcode\_px}$) against Principal Display Panel (PDP) area. |
+| **Rule 7, Table-I** | Minimum Numeral Height in Millimeters | Measures numeral height in mm via Optical Barcode Fiducial ($S = 37.29\text{ mm} / \text{barcode\px}$) against Principal Display Panel (PDP) area. |
 | **Rule 6(1)(a)** | Manufacturer / Packer / Importer Identity | Validates complete entity name and registered physical location. |
 | **Rule 6(1)(b) & 2026 Mandate** | Country of Origin | Prominently enforces origin declaration for imported and domestic commodities. |
 | **Rule 6(1)(d)** | Date of Manufacture / Packing | Extracts Month & Year, or recognizes statutory embossed crimp seal notice under Rule 6(1)(d) proviso. |
